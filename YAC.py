@@ -32,16 +32,16 @@ def getArgs():
     for i in sys.argv: #parse all args
         #args[i] = sys.argv[i]
         #args[i] = sys.argv[i+1] #grab args following - command line arg
-        if sys.argv[i] = '-h' or '--h':
+        if sys.argv[i] == '-h' or '--h':
             print('The following arguments can be passed to the script')
             print('help -h or --h')
             print('file -f <file> or --f <file>')
             print('url -u <url> or --u <url>')
         #elif sys.argv[i] = '-f' or '--f':
             #ovpnProfFile = sys.argv[i+1]
-        elif sys.argv[i] = '-u' or '--u':
+        elif sys.argv[i] == '-u' or '--u':
             url = sys.argv[i+1]
-        elif sys.argv[i] = '-p' or '--':
+        elif sys.argv[i] == '-p' or '--':
             ovpnPin = sys.argv[i+1]
             #ensure pin is a number
             if ovpnPin.isdigit():
