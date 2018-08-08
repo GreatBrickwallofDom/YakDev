@@ -10,10 +10,11 @@ global ovpnPin
 global ovpnProfFile
 global vpnConUUID
 
+
 #check to see if user is root
 def checkUser():
-    if( os.getlogin() != 'root' ):
-        print('not signed in as root') 
+    if( os.geteuid() != 0 ):
+        print('not signed in as root')
 
 
 def downloadZipProfile():
@@ -28,45 +29,57 @@ def downloadZipProfile():
 
 
 def getArgs():
-    args = {} #empty dictionary for command line args
-    for i in sys.argv: #parse all args
+    print(sys.argv)
+    args = sys.argv
+    print(args)
+    for arg in args: #parse all args
+        print(arg)
         #args[i] = sys.argv[i]
         #args[i] = sys.argv[i+1] #grab args following - command line arg
-        if sys.argv[i] == '-h' or '--h':
+        if arg == '-h' or arg == '--h':
             print('The following arguments can be passed to the script')
             print('help -h or --h')
             print('file -f <file> or --f <file>')
             print('url -u <url> or --u <url>')
+            sys.exit()
         #elif sys.argv[i] = '-f' or '--f':
             #ovpnProfFile = sys.argv[i+1]
-        elif sys.argv[i] == '-u' or '--u':
-            url = sys.argv[i+1]
-        elif sys.argv[i] == '-p' or '--':
-            ovpnPin = sys.argv[i+1]
+        elif arg == '-u' or arg == '--u':
+            url = args[args.index('-u' or '--u') + 1]
+            print(url)
+        elif arg == '-p' or arg == '--p':
+            ovpnPin = args[args.index('-p' or '--p') + 1]
+            print(ovpnPin)
             #ensure pin is a number
             if ovpnPin.isdigit():
+                print('Pin is a number')
             else:
                 print('Pin is not a number')
                 sys.exit()
         else:
             print('invalid args')
-         
+            sys.exit()
+
 
 def installOpenVpn():
     #check successfull openVPN install
-    if ( subprocess.check_call('apt-get ]install -y openvpn unzip network-manager-openvpn openvpn-systemd-resolved') != 0 ):
+    if  subprocess.check_call('apt-get install -y openvpn unzip network-manager-openvpn openvpn-systemd-resolved'):
         #if unsuccessful, provide returncall and custom message
+        print('open vpn installed')
+    else:
         print('open vpn failed to install')
 
 def checkExists(dir,fil):
     #check if dir exists
     if(os.path.isdir(dir)):
+        print('dir exists')
     #create directory if it doesn't exist
     else:
         subprocess.check_call('mkdir {0}'.format(dir))
 
     #check if file exists
     if(os.path.isfile(fil)):
+        print('file exists')
     #create file if it doesn't exist
     else:
         subprocess.check_call('touch {0}'.format(fil))
@@ -83,21 +96,21 @@ def importVpnProfile():
     #import Open VPN profile
     subprocess.check_call('nmcli connection import type openvpn {0} /tmp/{0}'.format(ovnpProfFile))
     subproccess.check_call('echo "vpn.secrets.password:{0}" > /vpn/pin/location'.format(ovpnPin))
-    
+
     #first connection attempt
-    vpnConUUID = subproccess.check_call("nmcli -t -f UUID,TYPE con | grep vpn | awk -F: '{print$1}'")    
+    vpnConUUID = subproccess.check_call("nmcli -t -f UUID,TYPE con | grep vpn | awk -F: '{print$1}'")
     subproccess.check_call('nmcli connection up {0} passwd-file ~/vpn/pin/location'.format(vpnConUUID))
 
 def main():
     #check the user
     checkUser()
     #get command line args
-    checkArgs()
+    getArgs()
     #Install Open VPN
     installOpenVpn()
     #import VPN profile
     importVpnProfile()
-    
+
 
 
 if __name__ == "__main__":
