@@ -5,7 +5,7 @@
 #setting the vars
 vpn_host_int=""
 vpn_host_ext=""
-credsfile="/home/pi/openvpn/pass"
+credsfile=""
 internet="unreachable"
 failedpings=0
 sleeptime=5
