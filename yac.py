@@ -30,10 +30,15 @@ def downloadZipProfile():
 
 def getArgs():
     print(sys.argv)
+    index = 0
     args = sys.argv
+    args.pop(0)
     print(args)
-    for arg in args: #parse all args
+    print(args[1])
+    for i in range(0, len(args),2): #parse all args
+        arg = args[i]
         print(arg)
+        print(i)
         #args[i] = sys.argv[i]
         #args[i] = sys.argv[i+1] #grab args following - command line arg
         if arg == '-h' or arg == '--h':
@@ -45,10 +50,13 @@ def getArgs():
         #elif sys.argv[i] = '-f' or '--f':
             #ovpnProfFile = sys.argv[i+1]
         elif arg == '-u' or arg == '--u':
-            url = args[args.index('-u' or '--u') + 1]
+            url = args[args.index(arg) + 1]
+            print('checking url')
             print(url)
         elif arg == '-p' or arg == '--p':
-            ovpnPin = args[args.index('-p' or '--p') + 1]
+            global ovpnPin
+            ovpnPin = args[args.index(arg) + 1]
+            print('ovpnVerification')
             print(ovpnPin)
             #ensure pin is a number
             if ovpnPin.isdigit():
@@ -60,38 +68,38 @@ def getArgs():
             print('invalid args')
             sys.exit()
 
-
 def installOpenVpn():
     #check successfull openVPN install
-    if  subprocess.check_call('apt-get install -y openvpn unzip network-manager-openvpn openvpn-systemd-resolved'):
+    if  subprocess.check_call(['apt-get', 'install', '-y', 'openvpn']):
+    #if  subprocess.check_call(['apt-get', 'install', '-y', 'openvpn','unzip','network-manager-openvpn','openvpn-systemd-resolved', 'tmux']):
         #if unsuccessful, provide returncall and custom message
-        print('open vpn installed')
-    else:
         print('open vpn failed to install')
+    else:
+        print('open vpn installed')
 
-def checkExists(dir,fil):
+def checkExists(drct,fil):
     #check if dir exists
-    if(os.path.isdir(dir)):
+    if(os.path.isdir(drct)):
         print('dir exists')
     #create directory if it doesn't exist
     else:
-        subprocess.check_call('mkdir {0}'.format(dir))
+        os.mkdir(drct)
 
     #check if file exists
     if(os.path.isfile(fil)):
         print('file exists')
     #create file if it doesn't exist
     else:
-        subprocess.check_call('touch {0}'.format(fil))
+        print('file does not exist')
+        f= open(fil,"w+")
+        f.close()
 
 
 def importVpnProfile():
     #check for root /root/openvpn/ dir
-    checkExists('/root/openvpn/', null)
-    #check for /root/openvpn/creds file
-    checkExists(null, '/root/openvpn/creds')
+    checkExists('/root/openvpn/', '/root/openvpn/creds')
     #populate creds file
-    subprocess.check_call('echo "{0}" > /root/openvpn/creds'.format(ovpnPin))
+    subprocess.check_call('echo > /root/openvpn/creds').format(ovpnPin)
 
     #import Open VPN profile
     subprocess.check_call('nmcli connection import type openvpn {0} /tmp/{0}'.format(ovnpProfFile))
