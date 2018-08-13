@@ -26,23 +26,23 @@ vpn_uuid="$(nmcli -t -f UUID,TYPE con | grep vpn | awk -F: '{print $1}')"
 # execute 'logsetup' once at the beginning of your script, then
 # use 'log' how many times you like.
 
-function logsetup {
-    TMP=$(tail -n $retain_num_lines $logfile 2>/dev/null) && echo "${TMP}" > $logfile
-    exec > >(tee -a $logfile)
-    exec 2>&1
+function logsetup() {
+  TMP=$(tail -n $retain_num_lines $logfile 2>/dev/null) && echo "${TMP}" > $logfile
+  exec > >(tee -a $logfile)
+  exec 2>&1
 }
 
-function log {
-    echo "[$(date --rfc-3339=seconds)]: $*"
+function log() {
+  TMP=$(tail -n $retain_num_lines $logfile 2>/dev/null) && echo "${TMP}" > $logfile
+  echo "[$(date --rfc-3339=seconds)]: $*"
 }
 #create the logfile and redirect output from "log" function to echo
 logsetup
 
-#wait for the internet to come up, do not try VPNcon until external address
-#of vpn server is reachable
+#wait for the internet to come up, do not try VPNcon until external address of vpn server is reachable
 function check_inet() {
   while [[ $internet == "unreachable" ]]; do
-    log "Checking internet connection..."
+    log "Please stand by..."
     sleep $sleeptime
     ping -c 1 $vpn_host_ext >/dev/null 2>&1
     if [[ $? -ne 0 ]]; then
@@ -91,6 +91,11 @@ function watchdog() {
 }
 
 #Start of execution
+log "==> VPN Watchdog current configuration:
+  UUID  :$vpn_uuid
+  ExtIP :$vpn_host_ext
+  IntIP :$vpn_host_int
+  ==="
 log "Checking network connection"
 check_inet
 log "Bringing up the VPN"
