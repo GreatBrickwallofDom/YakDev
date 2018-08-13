@@ -6,8 +6,8 @@
 #  ¯\_(ツ)_/¯
 
 #setting the vars
-vpn_host_int="10.138.0.3"
-vpn_host_ext="vpn1.yac.dpsrr.com"
+vpn_host_int=""
+vpn_host_ext=""
 credsfile="/home/pi/openvpn/pass"
 internet="unreachable"
 failedpings=0
