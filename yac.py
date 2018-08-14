@@ -4,6 +4,8 @@ import os
 import subprocess
 import sys
 import urllib
+from optparse import OptionParser
+
 
 #global variables
 global url
@@ -17,6 +19,30 @@ def checkUser():
     if( os.geteuid() != 0 ):
         print('not signed in as root')
         sys.exit()
+
+
+#parse options/arguments
+def parseArgs():
+    parser = OptionParser()
+
+    parser.add_option("-u", "--url", dest="url",
+            help="URL to download the OVPN Profile")
+    parser.add_option("-p", "--pin", dest="ovpnPin",
+            help="Pin for the OVPN User")
+
+    (options, args) = parser.parse_args()
+    global url
+    url = options.url
+    #ensure pin is a number
+    global ovpnPin
+    ovpnPin = options.ovpnPin
+    if ovpnPin.isdigit():
+        print('Pin is a number')
+    else:
+        print('Pin must ONLY contain numbers.')
+        sys.exit()
+
+
 
 def clearNmConns():
     vpnConUUID = subprocess.check_output("nmcli -t -f UUID,TYPE con | grep vpn | awk -F: '{printf$1}'", shell=True)
@@ -129,7 +155,8 @@ def main():
     #check the user
     checkUser()
     #get command line args
-    getArgs()
+    #getArgs()
+    parseArgs()
     #clear network manager of vpn connections
     clearNmConns()
     #Install Open VPN
