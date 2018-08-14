@@ -8,9 +8,9 @@
 #setting the vars
 vpn_host_int=""
 vpn_host_ext=""
-credsfile="/home/pi/openvpn/pass"
-internet="unreachable"
+credsfile=""
 vpn_user=""
+internet="unreachable"
 failedpings=0
 sleeptime=5
 logfile=/var/log/vpnwatchdog.log
@@ -41,29 +41,6 @@ function log() {
 #create the logfile and redirect output from "log" function to echo
 logsetup
 
-function check_fw() {
-  #check user accept rule
-  iptables -C OUTPUT -m owner --gid-owner $vpn_user -o lo -j ACCEPT
-  if [[ $? -ne 0 ]]; then
-    log "Could not find FW ACCEPT rule for USER $vpn_user"
-    iptables -A OUTPUT -m owner --gid-owner $vpn_user -o lo -j ACCEPT
-    sleep 5
-    iptables-save > /etc/iptables/rules.v4
-  else
-    log "User FW ACCEPT rule exists"
-  fi
-  #check user/dev reject rule
-  iptables -C OUTPUT -m owner --gid-owner $vpn_user \! -o $vpn_dev -j REJECT
-  if [[ $? -ne 0 ]]; then
-    log "Could not find FW REJECT rule for USER $vpn_user and DEV $vpn_dev"
-    iptables -A OUTPUT -m owner --gid-owner $vpn_user \! -o $vpn_dev -j REJECT
-    sleep 5
-    iptables-save > /etc/iptables/rules.v4
-  else
-    log "User FW REJECT rule exists"
-  fi
-}
-
 #wait for the internet to come up, do not try VPNcon until external address of vpn server is reachable
 function check_inet() {
   while [[ $internet == "unreachable" ]]; do
@@ -83,6 +60,41 @@ function vpn_up() {
   log "Initial VPN connection attempt..."
   nmcli connection up $vpn_uuid passwd-file $credsfile
   sleep $sleeptime
+  #set the VPNdev this can only happen after the VPN tunnel is activated
+  vpn_dev="$(nmcli -t -f DEVICE,TYPE con | grep tun | awk -F: '{print $1}')"
+}
+
+function check_fw() {
+  #check all rules exists
+  iptables -C OUTPUT -m owner --gid-owner $vpn_user -o lo -j ACCEPT || rule1=1
+  iptables -C OUTPUT -m owner --gid-owner $vpn_user \! -o $vpn_dev -j REJECT || rule2=1
+  iptables -C OUTPUT -o lo -j ACCEPT || rule3=1
+  iptables -C INPUT -i lo -j ACCEPT || rule4=1
+  iptables -C INPUT -p tcp -m tcp --dport 22 -j ACCEPT || rule5=1
+  iptables -C INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT || rule6=1
+  iptables -C INPUT -j DROP || rule7=1
+  log "You may get an error here, this is expected please remain calm."
+  ipt_rules="$(($rule1+$rule2+$rule3+$rule4+$rule5+$rule6+$rule7))"
+  sleep $sleeptime
+
+  if [[ ipt_rules -ne 0 ]]; then
+    log "Failed to find rule(s)  (0/1):
+              1:$rule1 2:$rule2 3:$rule3 4:$rule4 5:$rule5 6:$rule6 7:$rule7"
+    iptables -F   #flush iptables of all rules
+    #setup the chain (allow all outgoing/established deny all incoming except SSH)
+    iptables -A OUTPUT -m owner --gid-owner $vpn_user -o lo -j ACCEPT
+    iptables -A OUTPUT -m owner --gid-owner $vpn_user \! -o $vpn_dev -j REJECT
+    iptables -A OUTPUT -o lo -j ACCEPT
+    iptables -A INPUT -i lo -j ACCEPT
+    iptables -A INPUT -p tcp -m tcp --dport 22 -j ACCEPT
+    iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+    iptables -A INPUT -j DROP
+
+    #make the FW rules persistant (requires iptables-persistent to set on boot)
+    iptables-save > /etc/iptables/rules.v4
+  else
+    log "Firewall appears to be configured correctly, nothing done."
+  fi
 }
 
 #run the VPN connection watchdog test/restore in infinite loop reboot/restore after X failed
@@ -117,16 +129,17 @@ function watchdog() {
 
 #start of execution
 log "==> VPN Watchdog current configuration:
+  User  :$vpn_user
   UUID  :$vpn_uuid
   ExtIP :$vpn_host_ext
   IntIP :$vpn_host_int
   <=="
-log "==> Checking FW Rules <=="
-check_fw
 log "==> Checking network connection <=="
 check_inet
 log "==> Bringing up the VPN <=="
 vpn_up
+log "==> Checking FW Rules <=="
+check_fw
 log "==> Starting the watchdog <=="
 watchdog
 
