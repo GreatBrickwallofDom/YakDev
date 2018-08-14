@@ -3,6 +3,7 @@
 import os
 import subprocess
 import sys
+import urllib
 
 #global variables
 global url
@@ -15,17 +16,26 @@ global vpnConUUID
 def checkUser():
     if( os.geteuid() != 0 ):
         print('not signed in as root')
+        sys.exit()
 
+def clearNmConns():
+    vpnConUUID = subprocess.check_output("nmcli -t -f UUID,TYPE con | grep vpn | awk -F: '{printf$1}'", shell=True)
+    subprocess.call(['nmcli', 'connection', 'delete', vpnConUUID])
+    subprocess.call(['rm', '-f', '/etc/NetworkManager/system-connections/*'])
+    subprocess.call(['service', 'NetworkManager', 'restart'])
 
 def downloadZipProfile():
     #get base filename
     #ovpnProfFile = '$(basename "{0}")'.format(url)
     # = os.system(ovpnProfFile)
     #make wget call to global url from getArgs() and save to tmp dir
-    zipFileName = subprocess.check_call('wget -{0} -P /tmp'.format(url))
-    subprocess.check_call(call)
+    global url
+    global filename
+    urllib.urlretrieve(url,filename="/tmp/vpnprofile.zip")
+    #zipFileName = subprocess.check_call('wget -{0} -P /tmp'.format(url))
+    #subprocess.check_call(call)
     #unzip file
-    ovpnProfFile = subprocess.check_call('cd /tmp && unzip {0}'.format(zipFileName))
+    ovpnProfFile = os.system('cd /tmp && unzip -p vpnprofile.zip > vpnprofile.ovpn')
 
 
 def getArgs():
@@ -50,6 +60,7 @@ def getArgs():
         #elif sys.argv[i] = '-f' or '--f':
             #ovpnProfFile = sys.argv[i+1]
         elif arg == '-u' or arg == '--u':
+            global url
             url = args[args.index(arg) + 1]
             print('checking url')
             print(url)
@@ -70,8 +81,8 @@ def getArgs():
 
 def installOpenVpn():
     #check successfull openVPN install
-    if  subprocess.check_call(['apt-get', 'install', '-y', 'openvpn']):
-    #if  subprocess.check_call(['apt-get', 'install', '-y', 'openvpn','unzip','network-manager-openvpn','openvpn-systemd-resolved', 'tmux']):
+    #if  subprocess.check_call(['apt-get', 'install', '-y', 'openvpn']):
+    if  subprocess.check_call(['apt-get', 'install', '-y', 'openvpn','unzip','network-manager-openvpn','openvpn-systemd-resolved', 'tmux', 'iptables-persistent']):
         #if unsuccessful, provide returncall and custom message
         print('open vpn failed to install')
     else:
@@ -98,24 +109,33 @@ def checkExists(drct,fil):
 def importVpnProfile():
     #check for root /root/openvpn/ dir
     checkExists('/root/openvpn/', '/root/openvpn/creds')
+    f = open("/root/openvpn/creds","w+")
+    f.write("vpn.secrets.password:{0}".format(ovpnPin))
+    f.close()
     #populate creds file
-    subprocess.check_call('echo > /root/openvpn/creds').format(ovpnPin)
+    #subprocess.check_call('echo "vpn.secrets.password:{0}" > /root/openvpn/creds').format(str(ovpnPin))
 
     #import Open VPN profile
-    subprocess.check_call('nmcli connection import type openvpn {0} /tmp/{0}'.format(ovnpProfFile))
-    subproccess.check_call('echo "vpn.secrets.password:{0}" > /vpn/pin/location'.format(ovpnPin))
+    print('i would have imported the profile but you killed me')
+    subprocess.call(['nmcli','connection', 'import', 'type', 'openvpn', 'file', '/tmp/vpnprofile.ovpn'])
+    os.system('echo "vpn.secrets.password:{0}" > /root/openvpn/creds'.format(ovpnPin))
 
     #first connection attempt
-    vpnConUUID = subproccess.check_call("nmcli -t -f UUID,TYPE con | grep vpn | awk -F: '{print$1}'")
-    subproccess.check_call('nmcli connection up {0} passwd-file ~/vpn/pin/location'.format(vpnConUUID))
+    vpnConUUID = subprocess.check_output("nmcli -t -f UUID,TYPE con | grep vpn | awk -F: '{printf$1}'", shell=True)
+    print('conUUID='+str(vpnConUUID))
+    subprocess.call(['nmcli', 'connection', 'up', 'uuid', vpnConUUID, 'passwd-file', '/root/openvpn/creds'])
 
 def main():
     #check the user
     checkUser()
     #get command line args
     getArgs()
+    #clear network manager of vpn connections
+    clearNmConns()
     #Install Open VPN
     installOpenVpn()
+    #download zip file
+    downloadZipProfile()
     #import VPN profile
     importVpnProfile()
 
