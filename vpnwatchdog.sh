@@ -10,12 +10,14 @@ vpn_host_int=""
 vpn_host_ext=""
 credsfile="/home/pi/openvpn/pass"
 internet="unreachable"
+vpn_user=""
 failedpings=0
 sleeptime=5
 logfile=/var/log/vpnwatchdog.log
 retain_num_lines=2000   #how many lines should the logfile hold?
-#getting the VPN UUID from NMCLI  \/
+#getting the VPN UUID and tun device from NMCLI  \/
 vpn_uuid="$(nmcli -t -f UUID,TYPE con | grep vpn | awk -F: '{print $1}')"
+vpn_dev="$(nmcli -t -f DEVICE,TYPE con | grep tun | awk -F: '{print $1}')"
 # END OF VARS
 
 
@@ -38,6 +40,29 @@ function log() {
 }
 #create the logfile and redirect output from "log" function to echo
 logsetup
+
+function check_fw() {
+  #check user accept rule
+  iptables -C OUTPUT -m owner --gid-owner $vpn_user -o lo -j ACCEPT
+  if [[ $? -ne 0 ]]; then
+    log "Could not find FW ACCEPT rule for USER $vpn_user"
+    iptables -A OUTPUT -m owner --gid-owner $vpn_user -o lo -j ACCEPT
+    sleep 5
+    iptables-save > /etc/iptables/rules.v4
+  else
+    log "User FW ACCEPT rule exists"
+  fi
+  #check user/dev reject rule
+  iptables -C OUTPUT -m owner --gid-owner $vpn_user \! -o $vpn_dev -j REJECT
+  if [[ $? -ne 0 ]]; then
+    log "Could not find FW REJECT rule for USER $vpn_user and DEV $vpn_dev"
+    iptables -A OUTPUT -m owner --gid-owner $vpn_user \! -o $vpn_dev -j REJECT
+    sleep 5
+    iptables-save > /etc/iptables/rules.v4
+  else
+    log "User FW REJECT rule exists"
+  fi
+}
 
 #wait for the internet to come up, do not try VPNcon until external address of vpn server is reachable
 function check_inet() {
@@ -90,17 +115,19 @@ function watchdog() {
   done
 }
 
-#Start of execution
+#start of execution
 log "==> VPN Watchdog current configuration:
   UUID  :$vpn_uuid
   ExtIP :$vpn_host_ext
   IntIP :$vpn_host_int
-  ==="
-log "Checking network connection"
+  <=="
+log "==> Checking FW Rules <=="
+check_fw
+log "==> Checking network connection <=="
 check_inet
-log "Bringing up the VPN"
+log "==> Bringing up the VPN <=="
 vpn_up
-log "Starting the watchdog"
+log "==> Starting the watchdog <=="
 watchdog
 
 
