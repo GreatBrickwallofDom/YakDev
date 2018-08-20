@@ -1,4 +1,8 @@
 #!/usr/bin/python
+#DPS Electronics
+#YAC controller automated configuration script
+#Version: 0.0.1
+#Authors: David Kelly and Dominik Piasecki
 
 import os
 import subprocess
@@ -6,20 +10,48 @@ import sys
 import urllib
 import urllib2
 from optparse import OptionParser
+import datetime
 
 #global variables
 global url
 global ovpnPin
 global ovpnProfFile
 global vpnConUUID
-
+global log
 
 #check to see if user is root
 def checkUser():
     if( os.geteuid() != 0 ):
-        print('This script needs sudo, call me like this:!\n $ sudo python ' + sys.argv[0])
+        output = 'This script needs sudo, call me like this:!\n $ sudo python ' + sys.argv[0]
+        print(output)
+        writeLog(output)
         sys.exit()
 
+#create log file
+def createLog():
+    logLocation = '/var/log/yac_setup.log'
+    global log
+    #append to existing log
+    if os.path.isfile(logLocation):
+        log = open(logLocation, 'a')
+    #create log if it doesn't exist
+    else:
+        log = open(logLocation, 'w+')
+
+#write to log file
+def writeLog(error):
+    now = datetime.datetime.now()
+    global log
+    log.write('[' + now.strftime("%Y-%m-%d %H:%M") + ']: ')
+    log.write(error + '\n')
+    print(error)
+
+#close log file
+def closeLog():
+    global log
+    log.close()
+
+#parse command line arguments
 def parseArgs():
     parser = OptionParser()
 
@@ -39,8 +71,8 @@ def menu():
     global url
     ovpnPin = ""
     url = ""
-    ovpnPin = raw_input("\nPlease enter the pin: ")
-    url = raw_input("Please enter the profile url: ")
+    ovpnPin = raw_input("\nPlease enter the PIN: ")
+    url = raw_input("Please enter the profile URL: ")
 
 def validate():
     global ovpnPin
@@ -56,10 +88,12 @@ def validate():
     print('PIN: ' + ovpnPin + "\n")
     #check if all args supplied and verify
     if (url == "None"):
-        print('ERROR: The URL was not given')
+        error = 'ERROR: The URL was not given'
+        writeLog(error)
         sys.exit()
     if (ovpnPin == "None"):
-        print('ERROR: The PIN was not given')
+        error = 'ERROR: The PIN was not given'
+        writeLog(error)
         sys.exit()
     #get the url and check to make sure its valid
     print('Checking the URL, Please wait.\n')
@@ -68,12 +102,16 @@ def validate():
     urlReqOut = urlReq.stdout.read()
     if (len(ovpnPin) < 8) or (ovpnPin.isdigit() == False) or (urlReqOut != '"200"'):
         if (len(ovpnPin) < 8):
-            print('ERROR: The pin must be at least 8 digits.')
+            error = 'ERROR: The pin must be at least 8 digits.'
+            writeLog(error)
         if (ovpnPin.isdigit() == False):
-            print('ERROR: The pin must be a number.')
+            error = 'ERROR: The pin must be a number.'
+            writeLog(error)
         if (urlReqOut != '"200"'):
-            print('ERROR: The URL does not appear to be valid.')
-            print('HTTP ECODE: ' + str(urlReqOut))
+            error = 'ERROR: The URL does not appear to be valid.'
+            writeLog(error)
+            httpEcode = 'HTTP ECODE: ' + str(urlReqOut)
+            writeLog(httpEcode)
         sys.exit()
     else:
         print('VARs validation successfull\n')
@@ -95,10 +133,12 @@ def downloadZipProfile():
 
 def installOpenVpn():
     #check successfull openVPN install
-    #if  subprocess.check_call(['apt-get', 'install', '-y', 'openvpn']):
     if  subprocess.check_call(['apt-get', 'install', '-y', 'openvpn','unzip','network-manager-openvpn','openvpn-systemd-resolved', 'tmux', 'iptables-persistent']):
         #if unsuccessful, provide returncall and custom message
-        print('open vpn failed to install')
+        error = 'ERROR: open vpn failed to install'
+        print(error)
+        writeLog(error)
+        sys.exit()
     else:
         print('open vpn installed')
 
@@ -120,13 +160,13 @@ def checkExists(drct,fil):
         f.close()
 
 def importVpnProfile():
-    #check for root /root/openvpn/ dir
+    #check for /root/openvpn/ directory and creds file
     checkExists('/root/openvpn/', '/root/openvpn/creds')
+    #create new creds file
     f = open("/root/openvpn/creds","w+")
+    #write pin to creds file
     f.write("vpn.secrets.password:{0}".format(ovpnPin))
     f.close()
-    #populate creds file
-    #subprocess.check_call('echo "vpn.secrets.password:{0}" > /root/openvpn/creds').format(str(ovpnPin))
 
     #import Open VPN profile
     subprocess.call(['nmcli','connection', 'import', 'type', 'openvpn', 'file', '/tmp/vpnprofile.ovpn'])
@@ -143,6 +183,8 @@ def cleanUp():
     os.remove("/tmp/vpnprofile.ovpn")
 
 def main():
+    #create yac_setup.log file
+    createLog()
     #check the user
     checkUser()
     #get command line args
@@ -164,6 +206,8 @@ def main():
     importVpnProfile()
     #clean up the /tmp/ files
     cleanUp()
+    #close yac_setup.log file
+    closeLog()
 
 
 if __name__ == "__main__":
