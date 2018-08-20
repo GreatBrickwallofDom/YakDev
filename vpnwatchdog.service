@@ -1,0 +1,13 @@
+[Unit]
+Description=vpnwatchdog
+After=network.target
+
+[Service]
+User=root
+Group=root
+ExecStart=/bin/bash /home/pi/vpnwatchdog.sh
+Type=simple
+PIDFile=/var/run/vpnwatchdog.pid
+
+[Install]
+WantedBy=default.target
