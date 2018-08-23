@@ -187,6 +187,8 @@ def main():
     createLog()
     #check the user
     checkUser()
+    #Install Open VPN
+    installOpenVpn()
     #get command line args
     parseArgs()
     if len(sys.argv) > 1:
@@ -198,8 +200,6 @@ def main():
     validate()
     #clear network manager of vpn connections
     clearNmConns()
-    #Install Open VPN
-    installOpenVpn()
     #download zip file
     downloadZipProfile()
     #import VPN profile
