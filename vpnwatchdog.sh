@@ -65,19 +65,20 @@ function vpn_up() {
 }
 
 function check_fw() {
+  fwrule = 0
   #check all rules exists
-  iptables -C OUTPUT -m owner --gid-owner $vpn_user -o lo -j ACCEPT || rule1=1
-  iptables -C OUTPUT -m owner --gid-owner $vpn_user \! -o $vpn_dev -j REJECT || rule2=1
-  iptables -C OUTPUT -o lo -j ACCEPT || rule3=1
-  iptables -C INPUT -i lo -j ACCEPT || rule4=1
-  iptables -C INPUT -p tcp -m tcp --dport 22 -j ACCEPT || rule5=1
-  iptables -C INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT || rule6=1
-  iptables -C INPUT -j DROP || rule7=1
+  iptables -C OUTPUT -m owner --gid-owner $vpn_user -o lo -j ACCEPT || fwrule=1
+  iptables -C OUTPUT -m owner --gid-owner $vpn_user \! -o $vpn_dev -j REJECT || fwrule=1
+  iptables -C OUTPUT -o lo -j ACCEPT || fwrule=1
+  iptables -C INPUT -i lo -j ACCEPT || fwrule=1
+  iptables -C INPUT -p tcp -m tcp --dport 22 -j ACCEPT || fwrule=1
+  iptables -C INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT || fwrule=1
+  iptables -C INPUT -j DROP || fwrule=1
   log "You may get an error here, this is expected please remain calm."
-  ipt_rules="$(($rule1+$rule2+$rule3+$rule4+$rule5+$rule6+$rule7))"
+  #ipt_rules="$(($rule1+$rule2+$rule3+$rule4+$rule5+$rule6+$rule7))"
   sleep $sleeptime
 
-  if [[ ipt_rules -ne 0 ]]; then
+  if [[ fwrule -ne 0 ]]; then
     log "Failed to find rule(s)  (0/1):
               1:$rule1 2:$rule2 3:$rule3 4:$rule4 5:$rule5 6:$rule6 7:$rule7"
     iptables -F   #flush iptables of all rules
