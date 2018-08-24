@@ -15,6 +15,7 @@ failedpings=0
 sleeptime=5
 logfile=/var/log/vpnwatchdog.log
 retain_num_lines=2000   #how many lines should the logfile hold?
+fwrule=0
 #getting the VPN UUID and tun device from NMCLI  \/
 vpn_uuid="$(nmcli -t -f UUID,TYPE con | grep vpn | awk -F: '{print $1}')"
 vpn_dev="$(nmcli -t -f DEVICE,TYPE con | grep tun | awk -F: '{print $1}')"
@@ -65,7 +66,6 @@ function vpn_up() {
 }
 
 function check_fw() {
-  fwrule = 0
   #check all rules exists
   iptables -C OUTPUT -m owner --gid-owner $vpn_user -o lo -j ACCEPT || fwrule=1
   iptables -C OUTPUT -m owner --gid-owner $vpn_user \! -o $vpn_dev -j REJECT || fwrule=1
