@@ -120,7 +120,7 @@ def validate():
 def clearNmConns():
     vpnConUUID = subprocess.check_output("nmcli -t -f UUID,TYPE con | grep vpn | awk -F: '{printf$1}'", shell=True)
     subprocess.call(['nmcli', 'connection', 'delete', vpnConUUID])
-    subprocess.call(['rm', '-f', '/etc/NetworkManager/system-connections/*'])
+    subprocess.call(['rm', '-f', '/etc/NetworkManager/system-connections/vpn*'])
     subprocess.call(['service', 'NetworkManager', 'restart'])
 
 def downloadZipProfile():
