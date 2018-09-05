@@ -12,7 +12,7 @@ credsfile=""
 vpn_user=""
 internet="unreachable"
 failedpings=0
-sleeptime=5
+sleeptime=60
 logfile=/var/log/vpnwatchdog.log
 retain_num_lines=2000   #how many lines should the logfile hold?
 fwrule=0
@@ -107,7 +107,7 @@ function watchdog() {
     if [[ $? -ne 0 ]]; then   #if ping is nonzero...
       log "Internal VPN address not reachable, trying to set up us the bomb."
       log "Number of consecutive failed attempts: $failedpings"
-      #failedpings=$[failedpings + 1]
+      failedpings=$[failedpings + 1]
       log "Bringing the VPN down for reset"
       nmcli connection down $vpn_uuid
       log "Trying to bring the connection back, please stand by."
