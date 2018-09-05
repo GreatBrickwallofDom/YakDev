@@ -73,6 +73,7 @@ function check_fw() {
   iptables -C INPUT -i lo -j ACCEPT || fwrule=1
   iptables -C INPUT -p tcp -m tcp --dport 22 -j ACCEPT || fwrule=1
   iptables -C INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT || fwrule=1
+  iptables -C INPUT -p tcp --dport 12345 -j ACCEPT || fwrule=1
   iptables -C INPUT -j DROP || fwrule=1
   log "You may get an error here, this is expected please remain calm."
   #ipt_rules="$(($rule1+$rule2+$rule3+$rule4+$rule5+$rule6+$rule7))"
@@ -89,6 +90,7 @@ function check_fw() {
     iptables -A INPUT -i lo -j ACCEPT
     iptables -A INPUT -p tcp -m tcp --dport 22 -j ACCEPT
     iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+    iptables -A INPUT -p tcp --dport 12345 -j ACCEPT
     iptables -A INPUT -j DROP
 
     #make the FW rules persistant (requires iptables-persistent to set on boot)
