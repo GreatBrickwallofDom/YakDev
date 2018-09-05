@@ -82,6 +82,7 @@ function check_fw() {
   if [[ fwrule -ne 0 ]]; then
     log "Failed to find rule(s)  (0/1):
               1:$rule1 2:$rule2 3:$rule3 4:$rule4 5:$rule5 6:$rule6 7:$rule7"
+    log "Fixing the firewall"
     iptables -F   #flush iptables of all rules
     #setup the chain (allow all outgoing/established deny all incoming except SSH)
     iptables -A OUTPUT -m owner --gid-owner $vpn_user -o lo -j ACCEPT
