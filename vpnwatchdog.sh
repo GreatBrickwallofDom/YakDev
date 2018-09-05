@@ -77,7 +77,7 @@ function check_fw() {
   iptables -C INPUT -j DROP || fwrule=1
   log "You may get an error here, this is expected please remain calm."
   #ipt_rules="$(($rule1+$rule2+$rule3+$rule4+$rule5+$rule6+$rule7))"
-  sleep $sleeptime
+  sleep 5
 
   if [[ fwrule -ne 0 ]]; then
     log "Failed to find rule(s)  (0/1):
