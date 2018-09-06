@@ -44,6 +44,7 @@ logsetup
 
 #wait for the internet to come up, do not try VPNcon until external address of vpn server is reachable
 function check_inet() {
+  log "==> Checking network connection <=="
   while [[ $internet == "unreachable" ]]; do
     log "Please stand by..."
     sleep $sleeptime
@@ -58,14 +59,16 @@ function check_inet() {
 
 #try to initially establish the VPN connection before running the watchdog
 function vpn_up() {
+  log "==> Bringing up the VPN <=="
   log "Initial VPN connection attempt..."
   nmcli connection up $vpn_uuid passwd-file $credsfile
-  sleep $sleeptime
+  sleep 10
   #set the VPNdev this can only happen after the VPN tunnel is activated
   vpn_dev="$(nmcli -t -f DEVICE,TYPE con | grep tun | awk -F: '{print $1}')"
 }
 
 function check_fw() {
+  log "==> Checking FW Rules <=="
   #check all rules exists
   iptables -C OUTPUT -m owner --gid-owner $vpn_user -o lo -j ACCEPT || fwrule=1
   iptables -C OUTPUT -m owner --gid-owner $vpn_user \! -o $vpn_dev -j REJECT || fwrule=1
@@ -103,6 +106,7 @@ function check_fw() {
 
 #run the VPN connection watchdog test/restore in infinite loop reboot/restore after X failed
 function watchdog() {
+  log "==> Starting the watchdog <=="
   while [[ true ]]; do
     sleep $sleeptime
     #check the connection, if bad try and bring up the connection
@@ -138,13 +142,9 @@ log "==> VPN Watchdog current configuration:
   ExtIP  : $vpn_host_ext
   IntIP  : $vpn_host_int
   <=="
-log "==> Checking network connection <=="
 check_inet
-log "==> Bringing up the VPN <=="
 vpn_up
-log "==> Checking FW Rules <=="
 check_fw
-log "==> Starting the watchdog <=="
 watchdog
 
 
