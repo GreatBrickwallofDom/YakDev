@@ -120,14 +120,13 @@ function watchdog() {
       log "Trying to bring the connection back, please stand by."
       sleep $sleeptime
       nmcli connection up $vpn_uuid passwd-file $credsfile
-      sleep 5
+      sleep 10
     else
       log "vpn happy!   :D"
       failedpings=0
     fi
 
     if [[ $failedpings -gt 9 ]]; then
-      failedpings=0
       log "Server is unreachable, rebooting"
       sleep $sleeptime
       reboot
