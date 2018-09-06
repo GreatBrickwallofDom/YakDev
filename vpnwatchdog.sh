@@ -133,10 +133,10 @@ function watchdog() {
 
 #start of execution
 log "==> VPN Watchdog current configuration:
-  User  :$vpn_user
-  UUID  :$vpn_uuid
-  ExtIP :$vpn_host_ext
-  IntIP :$vpn_host_int
+  User   : $vpn_user
+  UUID   : $vpn_uuid
+  ExtIP  : $vpn_host_ext
+  IntIP  : $vpn_host_int
   <=="
 log "==> Checking network connection <=="
 check_inet
